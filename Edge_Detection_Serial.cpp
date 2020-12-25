@@ -1,4 +1,5 @@
 #include <bits/stdc++.h>
+#include <sys/time.h>
 #define STB_IMAGE_IMPLEMENTATION
 #include "lib/stb_image.h"
 #define STB_IMAGE_WRITE_IMPLEMENTATION
@@ -65,13 +66,22 @@ void Sobel_serial(uint8_t* img, int width , int height , uint8_t* out_img){
 
 int main(int argc,char **argv){
     int width, height, bpp;
+    struct timeval start,end;
+    // load image & allocate memory
     uint8_t* rgb_image = stbi_load("image/im1.png", &width, &height, &bpp, CHANNEL_NUM);
     uint8_t* gray_img = (uint8_t*)malloc(width*height);
     uint8_t* out_img = (uint8_t*)malloc(width*height);
+    // doing computation
+    gettimeofday(&start,NULL);
     ToGray(rgb_image,width,height,gray_img);
     Sobel_serial(gray_img,width,height,out_img);
     stbi_write_png("result/image.png", width, height, 1, out_img, width);
+    gettimeofday(&end,NULL);
+    double timeuse = (end.tv_sec - start.tv_sec) + (double)(end.tv_usec - start.tv_usec)/1000000.0;
+    printf("Serial Time : %.6lf s\n", timeuse);
+    // free memory
     stbi_image_free(rgb_image);
+    free(gray_img);
     free(out_img);
     return 0;
 }
