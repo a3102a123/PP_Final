@@ -1,2 +1,2 @@
 ALL:
-	c++ Edge_Detection_Serial.cpp -o ED_serial
+	c++ Edge_Detection_Serial.cpp -o edge_serial
