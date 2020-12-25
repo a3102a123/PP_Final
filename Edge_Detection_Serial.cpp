@@ -22,6 +22,34 @@ void ToGray(uint8_t* img, int width , int height , uint8_t* out_img){
     }
 }
 
+void Gaussian_blur(uint8_t* img, int width , int height , uint8_t* out_img){
+    int idx;
+    int8_t kernel[9] = {
+        1 , 2 , 1,
+        2 , 4 , 2,
+        1 , 2 , 1
+    };
+    for(int j = 0 ; j < height ; j++){
+        for(int i = 0 ; i < width ; i++ ){
+            idx = ( j * width + i );
+            // set 0 to boundary
+            if(i == 0 || i == width - 1){
+                img[idx] = 0;
+                continue;
+            }
+            if(j == 0 || j == height - 1){
+                img[idx] = 0;
+                continue;
+            }
+            // Gaussian blur
+            float sum = 0;
+            for(int k = -4 ; k < 5 ; k++)
+                sum += ( kernel[k + 4] * img[idx + k] );
+            out_img[idx] = sum / 16.0;
+        }
+    }
+}
+
 void Sobel_serial(uint8_t* img, int width , int height , uint8_t* out_img){
     int idx;
     int8_t x_kernel[9] = {
@@ -70,13 +98,15 @@ int main(int argc,char **argv){
     // load image & allocate memory
     uint8_t* rgb_image = stbi_load("image/im1.png", &width, &height, &bpp, CHANNEL_NUM);
     uint8_t* gray_img = (uint8_t*)malloc(width*height);
+    uint8_t* blur_img = (uint8_t*)malloc(width*height);
     uint8_t* out_img = (uint8_t*)malloc(width*height);
     // doing computation
     gettimeofday(&start,NULL);
     ToGray(rgb_image,width,height,gray_img);
-    Sobel_serial(gray_img,width,height,out_img);
-    stbi_write_png("result/image.png", width, height, 1, out_img, width);
+    Gaussian_blur(gray_img,width,height,blur_img);
+    Sobel_serial(blur_img,width,height,out_img);
     gettimeofday(&end,NULL);
+    stbi_write_png("result/image.png", width, height, 1, out_img, width);
     double timeuse = (end.tv_sec - start.tv_sec) + (double)(end.tv_usec - start.tv_usec)/1000000.0;
     printf("Serial Time : %.6lf s\n", timeuse);
     // free memory
