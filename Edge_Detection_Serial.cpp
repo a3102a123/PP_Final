@@ -24,6 +24,24 @@ int8_t y_edge_kernel[9] = {
     1 , 2 , 1
 };
 
+void print_image(int width , int height , int x , int y , int num , uint8_t* img){
+    for(int j = x ; j < width && j - x < num  ; j++){
+        for(int i = y ; i < height && i - y < num ; i++){
+            printf("%u ",img[i * width + j]);
+        }
+        printf("\n");
+    }
+}
+
+void print_fmatrix(int width , int height , int x , int y , int num , float* matrix){
+    for(int j = x ; j < width && j - x < num  ; j++){
+        for(int i = y ; i < height && i - y < num ; i++){
+            printf("%f ",matrix[i * width + j]);
+        }
+        printf("\n");
+    }
+}
+
 void ToGray(uint8_t* img, int width , int height , uint8_t* out_img){
     uint8_t *pixel , r , g , b;
     int idx;
@@ -62,7 +80,7 @@ void Gaussian_blur(uint8_t* img, int width , int height , uint8_t* out_img){
     }
 }
 
-void Sobel_serial(uint8_t* img, int width , int height , uint8_t* out_img){
+void Sobel_serial(uint8_t* img, int width , int height , float* angle , uint8_t* out_img){
     int idx;
     for(int j = 0 ; j < height ; j++){
         for(int i = 0 ; i < width ; i++ ){
@@ -77,19 +95,22 @@ void Sobel_serial(uint8_t* img, int width , int height , uint8_t* out_img){
                 continue;
             }
             // Sobel edge detection
-            int sum_x = 0,sum_y = 0;
+            float sum_x = 0,sum_y = 0;
             // x direction differential
             for(int k = -4 ; k < 5 ; k++)
                 sum_x += ( x_edge_kernel[k + 4] * img[idx + k] );
             // y direction differential
             for(int k = -4 ; k < 5 ; k++)
                 sum_y += ( y_edge_kernel[k + 4] * img[idx + k] );
+            // the angle of gradient
+            angle[idx] = atan2f(sum_y,sum_x);
             int sum = abs(sum_x) + abs(sum_y);
             // thresholding 
-            if(sum >= 127)
-                out_img[idx] = 255;
-            else
-                out_img[idx] = 0;
+            out_img[idx] = sum;
+            // if(sum >= 127)
+            //     out_img[idx] = 255;
+            // else
+            //     out_img[idx] = 0;
         }
     }
 }
@@ -102,12 +123,15 @@ int main(int argc,char **argv){
     uint8_t* gray_img = (uint8_t*)malloc(width*height);
     uint8_t* blur_img = (uint8_t*)malloc(width*height);
     uint8_t* out_img = (uint8_t*)malloc(width*height);
+    float* angle = (float*)malloc(width*height * sizeof(float));
     // doing computation
     gettimeofday(&start,NULL);
     ToGray(rgb_image,width,height,gray_img);
     Gaussian_blur(gray_img,width,height,blur_img);
-    Sobel_serial(blur_img,width,height,out_img);
+    Sobel_serial(blur_img,width,height,angle,out_img);
     gettimeofday(&end,NULL);
+    // print_image(width,height,350,270,10,out_img);
+    // print_fmatrix(width,height,350,270,10,angle);
     stbi_write_png("result/image.png", width, height, 1, out_img, width);
     double timeuse = (end.tv_sec - start.tv_sec) + (double)(end.tv_usec - start.tv_usec)/1000000.0;
     printf("Serial Time : %.6lf s\n", timeuse);
