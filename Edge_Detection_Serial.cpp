@@ -155,6 +155,23 @@ void non_max_Suppression(uint8_t* img, int width , int height , float* angle , u
     }
 }
 
+// operate on same array
+void double_threshold(uint8_t* img, int width , int height){
+    uint8_t week = 25,strong = 255;
+    int idx;
+    for(int j = 0 ; j < height ; j++){
+        for(int i = 0 ; i < width ; i++ ){
+            idx = ( j * width + i );
+            if(img[idx] >= strong)
+                img[idx] = strong;
+            else if(img[idx] >= week)
+                img[idx] = week;
+            else
+                img[idx] = 0;
+        }
+    }
+}
+
 int main(int argc,char **argv){
     int width, height, bpp;
     struct timeval start,end;
@@ -171,8 +188,9 @@ int main(int argc,char **argv){
     Gaussian_blur(gray_img,width,height,blur_img);
     Sobel_serial(blur_img,width,height,angle,gradient_img);
     non_max_Suppression(gradient_img,width,height,angle,out_img);
+    double_threshold(out_img,width,height);
     gettimeofday(&end,NULL);
-    // print_image(width,height,350,270,10,out_img);
+    print_image(width,height,350,270,10,out_img);
     // print_fmatrix(width,height,350,270,10,angle);
     stbi_write_png("result/image.png", width, height, 1, out_img, width);
     double timeuse = (end.tv_sec - start.tv_sec) + (double)(end.tv_usec - start.tv_usec)/1000000.0;
