@@ -103,14 +103,54 @@ void Sobel_serial(uint8_t* img, int width , int height , float* angle , uint8_t*
             for(int k = -4 ; k < 5 ; k++)
                 sum_y += ( y_edge_kernel[k + 4] * img[idx + k] );
             // the angle of gradient
-            angle[idx] = atan2f(sum_y,sum_x);
+            angle[idx] = atan2f(sum_y,sum_x) * 180 / M_PI;
             int sum = abs(sum_x) + abs(sum_y);
-            // thresholding 
             out_img[idx] = sum;
+            // thresholding 
             // if(sum >= 127)
             //     out_img[idx] = 255;
             // else
             //     out_img[idx] = 0;
+        }
+    }
+}
+
+void non_max_Suppression(uint8_t* img, int width , int height , float* angle , uint8_t* out_img){
+    int idx;
+    for(int j = 0 ; j < height ; j++){
+        for(int i = 0 ; i < width ; i++ ){
+            // skip the boundary
+            if(i == 0 || i == width - 1){
+                continue;
+            }
+            if(j == 0 || j == height - 1){
+                continue;
+            }
+            idx = ( j * width + i );
+            float dir = angle[idx];
+            int q = 255 , r = 255;
+            // determine the adjacent gradient
+            if( (dir >= 0 && dir < 22.5) || (dir >= 157.5 && dir <= 180) ){
+                q = img[idx + width];
+                r = img[idx - width];
+            }
+            else if( (dir >= 22.5 && dir < 67.5) ){
+                q = img[idx - width + 1];
+                r = img[idx + width - 1];
+            }
+            else if( (dir >= 67.5 && dir < 112.5) ){
+                q = img[idx + 1];
+                r = img[idx - 1];
+            }
+            else if( (dir >= 112.5 && dir < 157.5) ){
+                q = img[idx - width - 1];
+                r = img[idx + width + 1];
+            }
+            // supression
+            if(img[idx] >= q && img[idx] >= r)
+                out_img[idx] = img[idx];
+            else
+                out_img[idx] = 0;
         }
     }
 }
@@ -122,13 +162,15 @@ int main(int argc,char **argv){
     uint8_t* rgb_image = stbi_load("image/im1.png", &width, &height, &bpp, CHANNEL_NUM);
     uint8_t* gray_img = (uint8_t*)malloc(width*height);
     uint8_t* blur_img = (uint8_t*)malloc(width*height);
+    uint8_t* gradient_img = (uint8_t*)malloc(width*height);
     uint8_t* out_img = (uint8_t*)malloc(width*height);
     float* angle = (float*)malloc(width*height * sizeof(float));
     // doing computation
     gettimeofday(&start,NULL);
     ToGray(rgb_image,width,height,gray_img);
     Gaussian_blur(gray_img,width,height,blur_img);
-    Sobel_serial(blur_img,width,height,angle,out_img);
+    Sobel_serial(blur_img,width,height,angle,gradient_img);
+    non_max_Suppression(gradient_img,width,height,angle,out_img);
     gettimeofday(&end,NULL);
     // print_image(width,height,350,270,10,out_img);
     // print_fmatrix(width,height,350,270,10,angle);
