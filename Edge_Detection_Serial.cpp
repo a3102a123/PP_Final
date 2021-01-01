@@ -6,6 +6,9 @@
 #include "lib/stb_image_write.h"
 
 #define CHANNEL_NUM 3
+#define WEEK 25
+#define STRONG 180
+
 using namespace std;
 
 int8_t Blur_kernel[9] = {
@@ -160,16 +163,43 @@ void non_max_Suppression(uint8_t* img, int width , int height , float* angle , u
 
 // operate on same array
 void double_threshold(uint8_t* img, int width , int height){
-    uint8_t week = 25,strong = 150;
     int idx;
     for(int j = 0 ; j < height ; j++){
         for(int i = 0 ; i < width ; i++ ){
             idx = ( j * width + i );
-            if(img[idx] >= strong)
+            if(img[idx] >= STRONG)
                 img[idx] = 255;
-            else if(img[idx] >= week)
-                img[idx] = week;
+            else if(img[idx] >= WEEK)
+                img[idx] = WEEK;
             else
+                img[idx] = 0;
+        }
+    }
+}
+
+void Hysteresis(uint8_t* img, int width , int height){
+    int idx;
+    for(int j = 0 ; j < height ; j++){
+        for(int i = 0 ; i < width ; i++ ){
+            // skip the boundary
+            if(i == 0 || i == width - 1){
+                continue;
+            }
+            if(j == 0 || j == height - 1){
+                continue;
+            }
+            idx = ( j * width + i );
+            if(img[idx] == WEEK){
+                for(int k = -1 ; k <= 1 ; k++){
+                    for(int l = -1 ; l <= 1 ; l++){
+                        if(img[idx + k * width + l] == 255){
+                            img[idx] = 255;
+                            break;
+                        }
+                    }
+                }
+            }
+            if(img[idx] != 255)
                 img[idx] = 0;
         }
     }
@@ -192,15 +222,8 @@ int main(int argc,char **argv){
     Sobel_serial(blur_img,width,height,angle,gradient_img);
     non_max_Suppression(gradient_img,width,height,angle,out_img);
     double_threshold(out_img,width,height);
+    Hysteresis(out_img,width,height);
     gettimeofday(&end,NULL);
-    // float num = 180;
-    // for(int j = 0 ; j < height ; j++)
-    //     for(int i = 0 ; i < width ; i++){
-    //         num = min(angle[i + j * width] , num);
-    //     }
-    // printf("MIN : %f\n",num);
-    // print_image(width,height,350,270,10,out_img);
-    // print_fmatrix(width,height,350,270,10,angle);
     stbi_write_png("result/image.png", width, height, 1, out_img, width);
     double timeuse = (end.tv_sec - start.tv_sec) + (double)(end.tv_usec - start.tv_usec)/1000000.0;
     printf("Serial Time : %.6lf s\n", timeuse);
