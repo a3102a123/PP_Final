@@ -7,6 +7,23 @@
 
 #define CHANNEL_NUM 3
 
+int8_t Blur_kernel[9] = {
+    1 , 2 , 1,
+    2 , 4 , 2,
+    1 , 2 , 1
+};
+
+int8_t x_edge_kernel[9] = {
+    -1 , 0 , 1,
+    -2 , 0 , 2,
+    -1 , 0 , 1
+};
+int8_t y_edge_kernel[9] = {
+    -1 , -2 , -1,
+    0 , 0 , 0,
+    1 , 2 , 1
+};
+
 void ToGray(uint8_t* img, int width , int height , uint8_t* out_img){
     uint8_t *pixel , r , g , b;
     int idx;
@@ -24,11 +41,6 @@ void ToGray(uint8_t* img, int width , int height , uint8_t* out_img){
 
 void Gaussian_blur(uint8_t* img, int width , int height , uint8_t* out_img){
     int idx;
-    int8_t kernel[9] = {
-        1 , 2 , 1,
-        2 , 4 , 2,
-        1 , 2 , 1
-    };
     for(int j = 0 ; j < height ; j++){
         for(int i = 0 ; i < width ; i++ ){
             idx = ( j * width + i );
@@ -44,7 +56,7 @@ void Gaussian_blur(uint8_t* img, int width , int height , uint8_t* out_img){
             // Gaussian blur
             float sum = 0;
             for(int k = -4 ; k < 5 ; k++)
-                sum += ( kernel[k + 4] * img[idx + k] );
+                sum += ( Blur_kernel[k + 4] * img[idx + k] );
             out_img[idx] = sum / 16.0;
         }
     }
@@ -52,16 +64,6 @@ void Gaussian_blur(uint8_t* img, int width , int height , uint8_t* out_img){
 
 void Sobel_serial(uint8_t* img, int width , int height , uint8_t* out_img){
     int idx;
-    int8_t x_kernel[9] = {
-        -1 , 0 , 1,
-        -2 , 0 , 2,
-        -1 , 0 , 1
-    };
-    int8_t y_kernel[9] = {
-        -1 , -2 , -1,
-        0 , 0 , 0,
-        1 , 2 , 1
-    };
     for(int j = 0 ; j < height ; j++){
         for(int i = 0 ; i < width ; i++ ){
             idx = ( j * width + i );
@@ -78,10 +80,10 @@ void Sobel_serial(uint8_t* img, int width , int height , uint8_t* out_img){
             int sum_x = 0,sum_y = 0;
             // x direction differential
             for(int k = -4 ; k < 5 ; k++)
-                sum_x += ( x_kernel[k + 4] * img[idx + k] );
+                sum_x += ( x_edge_kernel[k + 4] * img[idx + k] );
             // y direction differential
             for(int k = -4 ; k < 5 ; k++)
-                sum_y += ( y_kernel[k + 4] * img[idx + k] );
+                sum_y += ( y_edge_kernel[k + 4] * img[idx + k] );
             int sum = abs(sum_x) + abs(sum_y);
             // thresholding 
             if(sum >= 127)
