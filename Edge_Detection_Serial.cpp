@@ -8,6 +8,7 @@
 #define CHANNEL_NUM 3
 #define WEEK 25
 #define STRONG 180
+#define THREAD_NUM 4
 
 using namespace std;
 
@@ -47,29 +48,26 @@ void print_fmatrix(int width , int height , int x , int y , int num , float* mat
 }
 
 void ToGray(uint8_t* img, int width , int height , uint8_t* out_img){
-    uint8_t *pixel , r , g , b;
-    int idx;
-    omp_set_num_threads(4);
+    omp_set_num_threads(THREAD_NUM);
     #pragma omp parallel for
     for(int j = 0 ; j < height ; j++){
         for(int i = 0 ; i < width ; i++ ){
-            idx = ( j * width + i );
-            pixel = img + idx * CHANNEL_NUM;
-            r = pixel[0];
-            g = pixel[1];
-            b = pixel[2];
+            int idx = ( j * width + i );
+            uint8_t *pixel = img + idx * CHANNEL_NUM;
+            uint8_t r = pixel[0];
+            uint8_t g = pixel[1];
+            uint8_t b = pixel[2];
             out_img[idx] = (r*30 + g*59 + b*11 +50) / 100;
         }
     }
 }
 
 void Gaussian_blur(uint8_t* img, int width , int height , uint8_t* out_img){
-    int idx;
-    omp_set_num_threads(4);
+    omp_set_num_threads(THREAD_NUM);
     #pragma omp parallel for
     for(int j = 0 ; j < height ; j++){
         for(int i = 0 ; i < width ; i++ ){
-            idx = ( j * width + i );
+            int idx = ( j * width + i );
             // set 0 to boundary
             if(i == 0 || i == width - 1){
                 img[idx] = 0;
@@ -89,12 +87,11 @@ void Gaussian_blur(uint8_t* img, int width , int height , uint8_t* out_img){
 }
 
 void Sobel_serial(uint8_t* img, int width , int height , float* angle , uint8_t* out_img){
-    int idx;
-    /*omp_set_num_threads(4);
-    #pragma omp parallel for*/
+    omp_set_num_threads(THREAD_NUM);
+    #pragma omp parallel for
     for(int j = 0 ; j < height ; j++){
         for(int i = 0 ; i < width ; i++ ){
-            idx = ( j * width + i );
+            int idx = ( j * width + i );
             // set 0 to boundary
             if(i == 0 || i == width - 1){
                 img[idx] = 0;
@@ -107,12 +104,12 @@ void Sobel_serial(uint8_t* img, int width , int height , float* angle , uint8_t*
             // Sobel edge detection
             float sum_x = 0,sum_y = 0;
             // x direction differential
-            /*omp_set_num_threads(4);
+            /*omp_set_num_threads(THREAD_NUM);
             #pragma omp parallel for*/
             for(int k = -4 ; k < 5 ; k++)
                 sum_x += ( x_edge_kernel[k + 4] * img[idx + k] );
             // y direction differential
-            /*omp_set_num_threads(4);
+            /*omp_set_num_threads(THREAD_NUM);
             #pragma omp parallel for*/
             for(int k = -4 ; k < 5 ; k++)
                 sum_y += ( y_edge_kernel[k + 4] * img[idx + k] );
@@ -130,8 +127,7 @@ void Sobel_serial(uint8_t* img, int width , int height , float* angle , uint8_t*
 }
 
 void non_max_Suppression(uint8_t* img, int width , int height , float* angle , uint8_t* out_img){
-    int idx;
-    omp_set_num_threads(4);
+    omp_set_num_threads(THREAD_NUM);
     #pragma omp parallel for
     for(int j = 0 ; j < height ; j++){
         for(int i = 0 ; i < width ; i++ ){
@@ -142,7 +138,7 @@ void non_max_Suppression(uint8_t* img, int width , int height , float* angle , u
             if(j == 0 || j == height - 1){
                 continue;
             }
-            idx = ( j * width + i );
+            int idx = ( j * width + i );
             float dir = angle[idx];
             if(dir < 0)
                 dir += 180;
@@ -175,12 +171,11 @@ void non_max_Suppression(uint8_t* img, int width , int height , float* angle , u
 
 // operate on same array
 void double_threshold(uint8_t* img, int width , int height){
-    int idx;
+    omp_set_num_threads(THREAD_NUM);
+    #pragma omp parallel for
     for(int j = 0 ; j < height ; j++){
-        omp_set_num_threads(4);
-        #pragma omp parallel for
         for(int i = 0 ; i < width ; i++ ){
-            idx = ( j * width + i );
+            int idx = ( j * width + i );
             if(img[idx] >= STRONG)
                 img[idx] = 255;
             else if(img[idx] >= WEEK)
@@ -192,8 +187,7 @@ void double_threshold(uint8_t* img, int width , int height){
 }
 
 void Hysteresis(uint8_t* img, int width , int height){
-    int idx;
-    omp_set_num_threads(4);
+    omp_set_num_threads(THREAD_NUM);
     #pragma omp parallel for
     for(int j = 0 ; j < height ; j++){
         for(int i = 0 ; i < width ; i++ ){
@@ -204,7 +198,7 @@ void Hysteresis(uint8_t* img, int width , int height){
             if(j == 0 || j == height - 1){
                 continue;
             }
-            idx = ( j * width + i );
+            int idx = ( j * width + i );
             if(img[idx] == WEEK){
                 for(int k = -1 ; k <= 1 ; k++){
                     for(int l = -1 ; l <= 1 ; l++){
