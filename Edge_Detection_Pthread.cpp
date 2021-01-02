@@ -77,9 +77,9 @@ void ToGray(uint8_t *img, int width, int height, uint8_t *out_img)
 }
 void *ToGrayThread(void *data)
 {
-  pthread_t tid = pthread_self();
-  // pid_t tid = gettid();
-  printf("thread id=%lu\n", tid);
+  //pthread_t tid = pthread_self();
+  int tid = getpid();
+  printf("thread id=%d\n", tid);
   uint8_t *pixel, r, g, b;
   int idx;
   for (int j = chunk_height * int(tid); j < chunk_height * number_of_cpu; j += chunk_height)
