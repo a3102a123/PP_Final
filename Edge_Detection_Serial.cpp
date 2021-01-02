@@ -4,7 +4,7 @@
 #include "lib/stb_image.h"
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "lib/stb_image_write.h"
-
+#include "omp.h"
 #define CHANNEL_NUM 3
 #define WEEK 25
 #define STRONG 180
@@ -49,6 +49,8 @@ void print_fmatrix(int width , int height , int x , int y , int num , float* mat
 void ToGray(uint8_t* img, int width , int height , uint8_t* out_img){
     uint8_t *pixel , r , g , b;
     int idx;
+    omp_set_num_threads(4);
+    #pragma omp parallel for
     for(int j = 0 ; j < height ; j++){
         for(int i = 0 ; i < width ; i++ ){
             idx = ( j * width + i );
@@ -63,6 +65,8 @@ void ToGray(uint8_t* img, int width , int height , uint8_t* out_img){
 
 void Gaussian_blur(uint8_t* img, int width , int height , uint8_t* out_img){
     int idx;
+    omp_set_num_threads(4);
+    #pragma omp parallel for
     for(int j = 0 ; j < height ; j++){
         for(int i = 0 ; i < width ; i++ ){
             idx = ( j * width + i );
@@ -86,6 +90,8 @@ void Gaussian_blur(uint8_t* img, int width , int height , uint8_t* out_img){
 
 void Sobel_serial(uint8_t* img, int width , int height , float* angle , uint8_t* out_img){
     int idx;
+    /*omp_set_num_threads(4);
+    #pragma omp parallel for*/
     for(int j = 0 ; j < height ; j++){
         for(int i = 0 ; i < width ; i++ ){
             idx = ( j * width + i );
@@ -101,9 +107,13 @@ void Sobel_serial(uint8_t* img, int width , int height , float* angle , uint8_t*
             // Sobel edge detection
             float sum_x = 0,sum_y = 0;
             // x direction differential
+            /*omp_set_num_threads(4);
+            #pragma omp parallel for*/
             for(int k = -4 ; k < 5 ; k++)
                 sum_x += ( x_edge_kernel[k + 4] * img[idx + k] );
             // y direction differential
+            /*omp_set_num_threads(4);
+            #pragma omp parallel for*/
             for(int k = -4 ; k < 5 ; k++)
                 sum_y += ( y_edge_kernel[k + 4] * img[idx + k] );
             // the angle of gradient
@@ -121,6 +131,8 @@ void Sobel_serial(uint8_t* img, int width , int height , float* angle , uint8_t*
 
 void non_max_Suppression(uint8_t* img, int width , int height , float* angle , uint8_t* out_img){
     int idx;
+    omp_set_num_threads(4);
+    #pragma omp parallel for
     for(int j = 0 ; j < height ; j++){
         for(int i = 0 ; i < width ; i++ ){
             // skip the boundary
@@ -165,6 +177,8 @@ void non_max_Suppression(uint8_t* img, int width , int height , float* angle , u
 void double_threshold(uint8_t* img, int width , int height){
     int idx;
     for(int j = 0 ; j < height ; j++){
+        omp_set_num_threads(4);
+        #pragma omp parallel for
         for(int i = 0 ; i < width ; i++ ){
             idx = ( j * width + i );
             if(img[idx] >= STRONG)
@@ -179,6 +193,8 @@ void double_threshold(uint8_t* img, int width , int height){
 
 void Hysteresis(uint8_t* img, int width , int height){
     int idx;
+    omp_set_num_threads(4);
+    #pragma omp parallel for
     for(int j = 0 ; j < height ; j++){
         for(int i = 0 ; i < width ; i++ ){
             // skip the boundary
@@ -207,7 +223,8 @@ void Hysteresis(uint8_t* img, int width , int height){
 
 int main(int argc,char **argv){
     int width, height, bpp;
-    struct timeval start,end;
+    struct timeval start[6], end[6];
+    const char *function_name[6] = { "ToGray", "Gaussian_blur", "Sobel_serial", "non_max_Suppression", "double_threshold", "Hysteresis" };
     // load image & allocate memory
     uint8_t* rgb_image = stbi_load("image/im1.png", &width, &height, &bpp, CHANNEL_NUM);
     uint8_t* gray_img = (uint8_t*)malloc(width*height);
@@ -216,17 +233,38 @@ int main(int argc,char **argv){
     uint8_t* out_img = (uint8_t*)malloc(width*height);
     float* angle = (float*)malloc(width*height * sizeof(float));
     // doing computation
-    gettimeofday(&start,NULL);
+    gettimeofday(&start[0],NULL);
     ToGray(rgb_image,width,height,gray_img);
+    gettimeofday(&end[0],NULL);
+
+    gettimeofday(&start[1],NULL);
     Gaussian_blur(gray_img,width,height,blur_img);
+    gettimeofday(&end[1],NULL);
+
+    gettimeofday(&start[2],NULL);
     Sobel_serial(blur_img,width,height,angle,gradient_img);
+    gettimeofday(&end[2],NULL);
+
+    gettimeofday(&start[3],NULL);
     non_max_Suppression(gradient_img,width,height,angle,out_img);
+    gettimeofday(&end[3],NULL);
+
+    gettimeofday(&start[4],NULL);
     double_threshold(out_img,width,height);
+    gettimeofday(&end[4],NULL);
+
+    gettimeofday(&start[5],NULL);
     Hysteresis(out_img,width,height);
-    gettimeofday(&end,NULL);
+    gettimeofday(&end[5],NULL);
+
     stbi_write_png("result/image.png", width, height, 1, out_img, width);
-    double timeuse = (end.tv_sec - start.tv_sec) + (double)(end.tv_usec - start.tv_usec)/1000000.0;
-    printf("Serial Time : %.6lf s\n", timeuse);
+    double total_time = 0.0;
+    for(int index = 0; index < 6; index++) {
+        double timeuse = (end[index].tv_sec - start[index].tv_sec) + (double)(end[index].tv_usec - start[index].tv_usec)/1000000.0;
+        printf("%s Time : %.6lf s\n",function_name[index], timeuse);
+        total_time += timeuse;
+    }
+    printf("total Time : %.6lf s\n", total_time);
     // free memory
     stbi_image_free(rgb_image);
     free(gray_img);
