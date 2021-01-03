@@ -200,8 +200,6 @@ void Hysteresis(uint8_t* img, int width , int height){
                     }
                 }
             }
-            if(img[idx] != 255)
-                img[idx] = 0;
         }
     }
     // bottom up
