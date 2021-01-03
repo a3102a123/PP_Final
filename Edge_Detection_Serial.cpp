@@ -241,7 +241,7 @@ int main(int argc,char **argv){
     Hysteresis(out_img,width,height);
     gettimeofday(&end[5],NULL);
 
-    stbi_write_png("result/image.png", width, height, 1, out_img, width);
+    stbi_write_png("result/Serial_image.png", width, height, 1, out_img, width);
     double total_time = 0.0;
     for(int index = 0; index < 6; index++) {
         double timeuse = (end[index].tv_sec - start[index].tv_sec) + (double)(end[index].tv_usec - start[index].tv_usec)/1000000.0;
