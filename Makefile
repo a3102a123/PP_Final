@@ -1,2 +1,2 @@
 ALL:
-	c++ Edge_Detection_Pthread.cpp -o edge_serial2.out
+	c++ Edge_Detection_Pthread.cpp -pthread -o edge_serial2.out
