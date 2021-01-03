@@ -392,7 +392,7 @@ int main(int argc, char **argv)
   }
   gettimeofday(&end[5], NULL);
 
-  stbi_write_png("result/image2.png", width, height, 1, out_img, width);
+  stbi_write_png("result/Pthread_image.png", width, height, 1, out_img, width);
   double total_time = 0.0;
   for (int index = 0; index < 6; index++)
   {
