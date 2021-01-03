@@ -110,7 +110,7 @@ void *GaussianThread(void *arg)
         gray_img[idx] = 0;
         continue;
       }
-      if (j == 0 || j == chunk_height * (tid+1) - 1)
+      if (j == 0 || j == height - 1)
       {
         gray_img[idx] = 0;
         continue;
@@ -142,7 +142,7 @@ void *SobelThread(void *arg)
         blur_img[idx] = 0;
         continue;
       }
-      if (j == 0 || j == chunk_height * (tid+1) - 1)
+      if (j == 0 || j == height - 1)
       {
         blur_img[idx] = 0;
         continue;
@@ -179,7 +179,7 @@ void *SuppressionThread(void *arg)
       {
         continue;
       }
-      if (j == 0 || j == chunk_height * (tid + 1) - 1)
+      if (j == 0 || j == height - 1)
       {
         continue;
       }
@@ -246,7 +246,6 @@ void *HysteresisThread(void *arg)
 {
   Arg *data = (Arg *)arg;
   int tid = data->thread_id;
-
   int idx;
   for (int j = chunk_height * tid; j < chunk_height * (tid + 1); j++)
   {
@@ -257,7 +256,7 @@ void *HysteresisThread(void *arg)
       {
         continue;
       }
-      if (j == 0 || j == chunk_height * (tid + 1) - 1)
+      if (j == 0 || j == height - 1)
       {
         continue;
       }
@@ -280,7 +279,7 @@ void *HysteresisThread(void *arg)
       //   out_img[idx] = 0;
     }
   }
-  pthread_barrier_wait(&barrier1);
+  pthread_barrier_wait(&barrier);
   // bottom up
   for (int j = chunk_height * (tid + 1) - 1; j >= chunk_height * tid; j--)
   {
@@ -291,7 +290,7 @@ void *HysteresisThread(void *arg)
       {
         continue;
       }
-      if (j == 0 || j == chunk_height * (tid + 1) - 1)
+      if (j == 0 || j == height - 1)
       {
         continue;
       }
