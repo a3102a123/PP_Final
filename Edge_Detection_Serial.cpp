@@ -179,8 +179,34 @@ void double_threshold(uint8_t* img, int width , int height){
 
 void Hysteresis(uint8_t* img, int width , int height){
     int idx;
+    // top down
     for(int j = 0 ; j < height ; j++){
         for(int i = 0 ; i < width ; i++ ){
+            // skip the boundary
+            if(i == 0 || i == width - 1){
+                continue;
+            }
+            if(j == 0 || j == height - 1){
+                continue;
+            }
+            idx = ( j * width + i );
+            if(img[idx] == WEEK){
+                for(int k = -1 ; k <= 1 ; k++){
+                    for(int l = -1 ; l <= 1 ; l++){
+                        if(img[idx + k * width + l] == 255){
+                            img[idx] = 255;
+                            break;
+                        }
+                    }
+                }
+            }
+            if(img[idx] != 255)
+                img[idx] = 0;
+        }
+    }
+    // bottom up
+    for(int j = height - 1 ; j >= 0 ; j--){
+        for(int i = width - 1 ; i >= 0 ; i-- ){
             // skip the boundary
             if(i == 0 || i == width - 1){
                 continue;
