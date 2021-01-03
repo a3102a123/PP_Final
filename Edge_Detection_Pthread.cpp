@@ -29,7 +29,7 @@ uint8_t *blur_img;
 uint8_t *gradient_img;
 uint8_t *out_img;
 float *angle;
-
+pthread_barrier_t barrier;
 
 int8_t Blur_kernel[9] = {
     1, 2, 1,
@@ -280,7 +280,7 @@ void *HysteresisThread(void *arg)
       //   out_img[idx] = 0;
     }
   }
-  pthread_barrier_wait(&barrier);
+  pthread_barrier_wait(&barrier1);
   // bottom up
   for (int j = chunk_height * (tid + 1) - 1; j >= chunk_height * tid; j--)
   {
@@ -331,7 +331,7 @@ int main(int argc, char **argv)
   //pthread_t *thread_handles;
   //thread_handles = (pthread_t *)malloc(number_of_thread * sizeof(pthread_t));
   pthread_t thread_handles[number_of_thread];
-  pthread_barrier_t *barrier;
+  
   // 設定 pthread 性質是要能 join
   pthread_attr_t attr;
   pthread_attr_init(&attr);
