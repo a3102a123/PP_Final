@@ -262,6 +262,9 @@ int main(int argc,char **argv){
     // free memory
     stbi_image_free(rgb_image);
     free(gray_img);
+    free(blur_img);
+    free(gradient_img);
     free(out_img);
+    free(angle);
     return 0;
 }
