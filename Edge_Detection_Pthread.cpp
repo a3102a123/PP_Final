@@ -30,6 +30,7 @@ uint8_t *gradient_img;
 uint8_t *out_img;
 float *angle;
 
+
 int8_t Blur_kernel[9] = {
     1, 2, 1,
     2, 4, 2,
@@ -275,6 +276,40 @@ void *HysteresisThread(void *arg)
           }
         }
       }
+      // if (out_img[idx] != 255)
+      //   out_img[idx] = 0;
+    }
+  }
+  pthread_barrier_wait(pthread_barrier_t * barrier);
+  // bottom up
+  for (int j = chunk_height * (tid + 1) - 1; j >= chunk_height * tid; j--)
+  {
+    for (int i = width - 1; i >= 0; i--)
+    {
+      // skip the boundary
+      if (i == 0 || i == width - 1)
+      {
+        continue;
+      }
+      if (j == 0 || j == chunk_height * (tid + 1) - 1)
+      {
+        continue;
+      }
+      idx = (j * width + i);
+      if (out_img[idx] == WEEK)
+      {
+        for (int k = -1; k <= 1; k++)
+        {
+          for (int l = -1; l <= 1; l++)
+          {
+            if (out_img[idx + k * width + l] == 255)
+            {
+              out_img[idx] = 255;
+              break;
+            }
+          }
+        }
+      }
       if (out_img[idx] != 255)
         out_img[idx] = 0;
     }
@@ -296,11 +331,12 @@ int main(int argc, char **argv)
   //pthread_t *thread_handles;
   //thread_handles = (pthread_t *)malloc(number_of_thread * sizeof(pthread_t));
   pthread_t thread_handles[number_of_thread];
+  pthread_barrier_t *barrier;
   // 設定 pthread 性質是要能 join
   pthread_attr_t attr;
   pthread_attr_init(&attr);
   pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
-
+  
   Arg arg[number_of_thread]; // 每個 thread 傳入的參數
   // ---
 
@@ -381,6 +417,7 @@ int main(int argc, char **argv)
   gettimeofday(&end[4], NULL);
 
   gettimeofday(&start[5], NULL);
+  pthread_barrier_init(&barrier, NULL, number_of_thread);
   for (thread = 0; thread < number_of_thread; thread++)
   {
     arg[thread].thread_id = thread;
