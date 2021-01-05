@@ -1,3 +1,7 @@
 result/*
+chart/*
 *.out
 .vscode/
+!result/.gitkeep
+!chart/.gitkeep
+*.txt
