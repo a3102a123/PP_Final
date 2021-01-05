@@ -4,3 +4,4 @@ chart/*
 .vscode/
 !result/.gitkeep
 !chart/.gitkeep
+*.txt

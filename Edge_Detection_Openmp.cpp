@@ -70,11 +70,11 @@ void Gaussian_blur(uint8_t* img, int width , int height , uint8_t* out_img){
             int idx = ( j * width + i );
             // set 0 to boundary
             if(i == 0 || i == width - 1){
-                img[idx] = 0;
+                out_img[idx] = 0;
                 continue;
             }
             if(j == 0 || j == height - 1){
-                img[idx] = 0;
+                out_img[idx] = 0;
                 continue;
             }
             // Gaussian blur
@@ -187,6 +187,8 @@ void double_threshold(uint8_t* img, int width , int height){
 }
 
 void Hysteresis(uint8_t* img, int width , int height){
+    omp_set_num_threads(THREAD_NUM);
+    #pragma omp parallel for
     for(int j = 0 ; j < height ; j++){
         for(int i = 0 ; i < width ; i++ ){
             // skip the boundary
@@ -210,6 +212,8 @@ void Hysteresis(uint8_t* img, int width , int height){
         }
     }
     // bottom up
+    omp_set_num_threads(THREAD_NUM);
+    #pragma omp parallel for
     for(int j = height - 1 ; j >= 0 ; j--){
         for(int i = width - 1 ; i >= 0 ; i-- ){
             // skip the boundary
@@ -238,7 +242,7 @@ void Hysteresis(uint8_t* img, int width , int height){
 
 int main(int argc,char **argv){
     int width, height, bpp;
-    THREAD_NUM = stoi(argv[1]);
+    THREAD_NUM = atoi(argv[1]);
     struct timeval start[6], end[6];
     const char *function_name[6] = { "ToGray", "Gaussian_blur", "Sobel_serial", "non_max_Suppression", "double_threshold", "Hysteresis" };
     // load image & allocate memory
@@ -272,7 +276,8 @@ int main(int argc,char **argv){
     gettimeofday(&start[5],NULL);
     Hysteresis(out_img,width,height);
     gettimeofday(&end[5],NULL);
-
+    // print_image(width,height,0,0,max(width,height) + 1,out_img);
+    // print_fmatrix(width,height,0,0,max(width,height) + 1,angle);
     stbi_write_png("result/OMP_image.png", width, height, 1, out_img, width);
     double total_time = 0.0;
     for(int index = 0; index < 6; index++) {
