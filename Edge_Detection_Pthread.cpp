@@ -400,9 +400,15 @@ int main(int argc, char **argv)
 
   Arg arg[number_of_thread]; // 每個 thread 傳入的參數
   // ---
-
+  char img_name_temp[] = "image/";
+  int len = strlen(img_name_temp) + strlen(argv[2]) + 1;
+  char img_name[len];
+  memset(img_name, '\0', len);
+  strcat(img_name, img_name_temp);
+  strcat(img_name, argv[2]);
+  printf("%s\n", img_name);
   // load image & allocate memory
-  rgb_image = stbi_load("image/im1.png", &width, &height, &bpp, CHANNEL_NUM);
+  rgb_image = stbi_load(img_name, &width, &height, &bpp, CHANNEL_NUM);
   gray_img = (uint8_t *)malloc(width * height);
   blur_img = (uint8_t *)malloc(width * height);
   gradient_img = (uint8_t *)malloc(width * height);
@@ -475,13 +481,11 @@ int main(int argc, char **argv)
   gettimeofday(&end[4], NULL);
 
   gettimeofday(&start[5], NULL);
-  printf("First Check\n");
   for (thread = 0; thread < number_of_thread; thread++)
   {
     pthread_create(&thread_handles[thread], &attr, HysteresisThread, (void *)&arg[thread]);
   }
   
-  printf("Second Check\n");
   for (thread = 0; thread < number_of_thread; thread++)
   {
     pthread_join(thread_handles[thread], NULL);
@@ -496,7 +500,6 @@ int main(int argc, char **argv)
   printf("Third Check\n");*/
   bfsFunc();
   gettimeofday(&end[5], NULL);
-  printf("f\n");
   // print_image(width,height,0,0,max(width,height) + 1,out_img);
   // print_fmatrix(width,height,0,0,max(width,height) + 1,angle);
   stbi_write_png("result/Pthread_image.png", width, height, 1, out_img, width);

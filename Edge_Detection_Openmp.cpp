@@ -290,7 +290,7 @@ void Hysteresis_array_way(uint8_t* img, int width , int height){
 
 int main(int argc,char **argv){
     int width, height, bpp;
-    THREAD_NUM = stoi(argv[1]);
+    THREAD_NUM = atoi(argv[1]);
     char img_name_temp[] = "image/";
     int len = strlen(img_name_temp) + strlen(argv[2]) + 1;
     char img_name[len];
