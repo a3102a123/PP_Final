@@ -194,7 +194,7 @@ void Hysteresis(uint8_t* img, int width , int height){
                 s.push(idx);
         }
     }
-    // BFS
+    // DFS
     int size;
     while(size = s.size()){
         for(int i = 0 ; i < size ; i++){
@@ -300,7 +300,7 @@ int main(int argc,char **argv){
     gettimeofday(&start[5],NULL);
     Hysteresis(out_img,width,height);
     gettimeofday(&end[5],NULL);
-    // print_image(width,height,0,0,max(width,height) + 1,out_img);
+    print_image(width,height,0,0,max(width,height) + 1,out_img);
     // print_fmatrix(width,height,0,0,max(width,height) + 1,angle);
     stbi_write_png("result/Serial_image.png", width, height, 1, out_img, width);
     double total_time = 0.0;
