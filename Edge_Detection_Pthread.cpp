@@ -30,7 +30,9 @@ uint8_t *blur_img;
 uint8_t *gradient_img;
 uint8_t *out_img;
 float *angle;
-pthread_barrier_t barrier;
+
+stack<int> s;
+pthread_mutex_t lock2;
 
 int8_t Blur_kernel[9] = {
     1, 2, 1,
@@ -242,7 +244,64 @@ void *double_thresholdThread(void *arg)
   pthread_exit((void *)0);
 }
 
+void bfsFunc()
+{
+  // BFS
+  int size;
+  while (size = s.size())
+  {
+    for (int i = 0; i < size; i++)
+    {
+      int idx = s.top();
+      s.pop();
+      // printf("%d\n",idx);
+      for (int k = -1; k <= 1; k++)
+      {
+        for (int l = -1; l <= 1; l++)
+        {
+          int temp_idx = idx + k * width + l;
+          if (out_img[temp_idx] == WEEK)
+          {
+            out_img[temp_idx] = 255;
+            s.push(temp_idx);
+          }
+        }
+      }
+    }
+  }
+}
+
 void *HysteresisThread(void *arg)
+{
+  // put the strong edge to stack
+  Arg *data = (Arg *)arg;
+  int tid = data->thread_id;
+
+  for (int j = chunk_height * tid; j < data->height; j++)
+  {
+    for (int i = 0; i < width; i++)
+    {
+      int idx = (j * width + i);
+      // skip the boundary
+      if (i == 0 || i == width - 1)
+      {
+        continue;
+      }
+      if (j == 0 || j == height - 1)
+      {
+        continue;
+      }
+      if (out_img[idx] == 255)
+      {
+        pthread_mutex_lock(&lock2);
+        s.push(idx);
+        pthread_mutex_unlock(&lock2);
+      }
+    }
+  }
+}
+
+void *HysteresisThread2(void *arg)
 {
   Arg *data = (Arg *)arg;
   int tid = data->thread_id;
@@ -279,7 +338,6 @@ void *HysteresisThread(void *arg)
       //   out_img[idx] = 0;
     }
   }
-  pthread_barrier_wait(&barrier);
   // bottom up
   for (int j = data->height - 1; j >= chunk_height * tid; j--)
   {
@@ -336,6 +394,10 @@ int main(int argc, char **argv)
   pthread_attr_init(&attr);
   pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
   
+  // lock
+  pthread_mutex_init(&lock2, NULL);
+
+
   Arg arg[number_of_thread]; // 每個 thread 傳入的參數
   // ---
 
@@ -413,16 +475,28 @@ int main(int argc, char **argv)
   gettimeofday(&end[4], NULL);
 
   gettimeofday(&start[5], NULL);
-  pthread_barrier_init(&barrier, NULL, number_of_thread);
+  printf("First Check\n");
   for (thread = 0; thread < number_of_thread; thread++)
   {
     pthread_create(&thread_handles[thread], &attr, HysteresisThread, (void *)&arg[thread]);
   }
+  
+  printf("Second Check\n");
   for (thread = 0; thread < number_of_thread; thread++)
   {
     pthread_join(thread_handles[thread], NULL);
   }
+  /*printf("Free size: %d", s.size());
+  for (int i = 0; i < s.size(); i++)
+  {
+    int t = s.top();
+    s.pop();
+    printf("%d ", t);
+  }
+  printf("Third Check\n");*/
+  bfsFunc();
   gettimeofday(&end[5], NULL);
+  printf("f\n");
   // print_image(width,height,0,0,max(width,height) + 1,out_img);
   // print_fmatrix(width,height,0,0,max(width,height) + 1,angle);
   stbi_write_png("result/Pthread_image.png", width, height, 1, out_img, width);
@@ -441,5 +515,6 @@ int main(int argc, char **argv)
   free(gradient_img);
   free(out_img);
   free(angle);
+  pthread_mutex_destroy(&lock2);
   return 0;
 }
