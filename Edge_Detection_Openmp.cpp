@@ -187,8 +187,58 @@ void double_threshold(uint8_t* img, int width , int height){
 }
 
 void Hysteresis(uint8_t* img, int width , int height){
-    omp_set_num_threads(THREAD_NUM);
-    #pragma omp parallel for
+    // put the strong edge to stack
+    stack<int> s;
+    //omp_set_num_threads(THREAD_NUM);
+    //#pragma omp parallel for
+    for(int j = 0 ; j < height ; j++){
+        for(int i = 0 ; i < width ; i++){
+            int idx = ( j * width + i );
+            // skip the boundary
+            if(i == 0 || i == width - 1){
+                continue;
+            }
+            if(j == 0 || j == height - 1){
+                continue;
+            }
+            //#pragma omp critical
+            //{
+                if(img[idx] == 255)
+                    s.push(idx);
+            //}
+        }
+    }
+    // BFS
+    int size;
+    while(size = s.size()){
+        //omp_set_num_threads(THREAD_NUM);
+        //#pragma omp parallel for
+        for(int i = 0 ; i < size ; i++){
+            int idx = 0;
+            //#pragma omp critical
+            //{
+                idx = s.top();
+                s.pop();
+            //}
+            for(int k = -1 ; k <= 1 ; k++){
+                for(int l = -1 ; l <= 1 ; l++){
+                    int temp_idx = idx + k * width + l;
+                    //#pragma omp critical
+                    //{
+                        if(img[temp_idx] == WEEK){
+                            img[temp_idx] = 255;
+                            s.push(temp_idx);
+                        }
+                    //}
+                }
+            }
+        }
+    }
+}
+
+void Hysteresis_array_way(uint8_t* img, int width , int height){
+    int idx;
+    // top down
     for(int j = 0 ; j < height ; j++){
         for(int i = 0 ; i < width ; i++ ){
             // skip the boundary
@@ -198,7 +248,7 @@ void Hysteresis(uint8_t* img, int width , int height){
             if(j == 0 || j == height - 1){
                 continue;
             }
-            int idx = ( j * width + i );
+            idx = ( j * width + i );
             if(img[idx] == WEEK){
                 for(int k = -1 ; k <= 1 ; k++){
                     for(int l = -1 ; l <= 1 ; l++){
@@ -212,8 +262,6 @@ void Hysteresis(uint8_t* img, int width , int height){
         }
     }
     // bottom up
-    omp_set_num_threads(THREAD_NUM);
-    #pragma omp parallel for
     for(int j = height - 1 ; j >= 0 ; j--){
         for(int i = width - 1 ; i >= 0 ; i-- ){
             // skip the boundary
@@ -223,7 +271,7 @@ void Hysteresis(uint8_t* img, int width , int height){
             if(j == 0 || j == height - 1){
                 continue;
             }
-            int idx = ( j * width + i );
+            idx = ( j * width + i );
             if(img[idx] == WEEK){
                 for(int k = -1 ; k <= 1 ; k++){
                     for(int l = -1 ; l <= 1 ; l++){
@@ -242,11 +290,18 @@ void Hysteresis(uint8_t* img, int width , int height){
 
 int main(int argc,char **argv){
     int width, height, bpp;
-    THREAD_NUM = atoi(argv[1]);
+    THREAD_NUM = stoi(argv[1]);
+    char img_name_temp[] = "image/";
+    int len = strlen(img_name_temp) + strlen(argv[2]) + 1;
+    char img_name[len];
+    memset(img_name, '\0', len);
+    strcat(img_name, img_name_temp);
+    strcat(img_name, argv[2]);
+    printf("%s\n", img_name);
     struct timeval start[6], end[6];
     const char *function_name[6] = { "ToGray", "Gaussian_blur", "Sobel_serial", "non_max_Suppression", "double_threshold", "Hysteresis" };
     // load image & allocate memory
-    uint8_t* rgb_image = stbi_load("image/im1.png", &width, &height, &bpp, CHANNEL_NUM);
+    uint8_t* rgb_image = stbi_load(img_name, &width, &height, &bpp, CHANNEL_NUM);
     uint8_t* gray_img = (uint8_t*)malloc(width*height);
     uint8_t* blur_img = (uint8_t*)malloc(width*height);
     uint8_t* gradient_img = (uint8_t*)malloc(width*height);
