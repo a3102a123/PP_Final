@@ -244,9 +244,9 @@ void *double_thresholdThread(void *arg)
   pthread_exit((void *)0);
 }
 
-void bfsFunc()
+void dfsFunc()
 {
-  // BFS
+  // DFS
   int size;
   while (size = s.size())
   {
@@ -271,13 +271,11 @@ void bfsFunc()
   }
 }
 
-void *HysteresisThread(void *arg)
+void HysteresisThread()
 {
   // put the strong edge to stack
-  Arg *data = (Arg *)arg;
-  int tid = data->thread_id;
 
-  for (int j = chunk_height * tid; j < data->height; j++)
+  for (int j = 0; j < height; j++)
   {
     for (int i = 0; i < width; i++)
     {
@@ -293,12 +291,11 @@ void *HysteresisThread(void *arg)
       }
       if (out_img[idx] == 255)
       {
-        pthread_mutex_lock(&lock2);
         s.push(idx);
-        pthread_mutex_unlock(&lock2);
       }
     }
   }
+  dfsFunc();
 }
 
 void *HysteresisThread2(void *arg)
@@ -481,24 +478,7 @@ int main(int argc, char **argv)
   gettimeofday(&end[4], NULL);
 
   gettimeofday(&start[5], NULL);
-  for (thread = 0; thread < number_of_thread; thread++)
-  {
-    pthread_create(&thread_handles[thread], &attr, HysteresisThread, (void *)&arg[thread]);
-  }
-  
-  for (thread = 0; thread < number_of_thread; thread++)
-  {
-    pthread_join(thread_handles[thread], NULL);
-  }
-  /*printf("Free size: %d", s.size());
-  for (int i = 0; i < s.size(); i++)
-  {
-    int t = s.top();
-    s.pop();
-    printf("%d ", t);
-  }
-  printf("Third Check\n");*/
-  bfsFunc();
+  HysteresisThread();
   gettimeofday(&end[5], NULL);
   // print_image(width,height,0,0,max(width,height) + 1,out_img);
   // print_fmatrix(width,height,0,0,max(width,height) + 1,angle);
