@@ -239,10 +239,17 @@ void Hysteresis(uint8_t* img, int width , int height){
 int main(int argc,char **argv){
     int width, height, bpp;
     THREAD_NUM = stoi(argv[1]);
+    char img_name_temp[] = "image/";
+    int len = strlen(img_name_temp) + strlen(argv[2]) + 1;
+    char img_name[len];
+    memset(img_name, '\0', len);
+    strcat(img_name, img_name_temp);
+    strcat(img_name, argv[2]);
+    printf("%s\n", img_name);
     struct timeval start[6], end[6];
     const char *function_name[6] = { "ToGray", "Gaussian_blur", "Sobel_serial", "non_max_Suppression", "double_threshold", "Hysteresis" };
     // load image & allocate memory
-    uint8_t* rgb_image = stbi_load("image/im1.png", &width, &height, &bpp, CHANNEL_NUM);
+    uint8_t* rgb_image = stbi_load(img_name, &width, &height, &bpp, CHANNEL_NUM);
     uint8_t* gray_img = (uint8_t*)malloc(width*height);
     uint8_t* blur_img = (uint8_t*)malloc(width*height);
     uint8_t* gradient_img = (uint8_t*)malloc(width*height);
