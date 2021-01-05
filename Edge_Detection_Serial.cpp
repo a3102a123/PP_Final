@@ -68,11 +68,11 @@ void Gaussian_blur(uint8_t* img, int width , int height , uint8_t* out_img){
             idx = ( j * width + i );
             // set 0 to boundary
             if(i == 0 || i == width - 1){
-                img[idx] = 0;
+                out_img[idx] = 0;
                 continue;
             }
             if(j == 0 || j == height - 1){
-                img[idx] = 0;
+                out_img[idx] = 0;
                 continue;
             }
             // Gaussian blur
@@ -264,7 +264,8 @@ int main(int argc,char **argv){
     gettimeofday(&start[5],NULL);
     Hysteresis(out_img,width,height);
     gettimeofday(&end[5],NULL);
-
+    // print_image(width,height,0,0,max(width,height) + 1,out_img);
+    // print_fmatrix(width,height,0,0,max(width,height) + 1,angle);
     stbi_write_png("result/Serial_image.png", width, height, 1, out_img, width);
     double total_time = 0.0;
     for(int index = 0; index < 6; index++) {

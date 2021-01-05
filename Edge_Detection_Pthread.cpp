@@ -16,6 +16,7 @@ using namespace std;
 typedef struct
 {
   int thread_id;
+  int height;
 } Arg;
 
 // Global use
@@ -77,7 +78,7 @@ void *ToGrayThread(void *arg)
   //printf("thread id=%d\n", tid);
   uint8_t *pixel, r, g, b;
   int idx;
-  for (int j = chunk_height * tid; j < chunk_height * (tid+1); j += 1)
+  for (int j = chunk_height * tid; j < data->height; j += 1)
   {
     //printf("height num=%d\n", j);
     for (int i = 0; i < chunk_width; i++)
@@ -97,9 +98,8 @@ void *GaussianThread(void *arg)
 {
   Arg *data = (Arg *)arg;
   int tid = data->thread_id;
-
   int idx;
-  for (int j = chunk_height * tid; j < chunk_height * (tid+1); j++)
+  for (int j = chunk_height * tid; j < data->height; j++)
   {
     for (int i = 0; i < width; i++)
     {
@@ -107,12 +107,12 @@ void *GaussianThread(void *arg)
       // set 0 to boundary
       if (i == 0 || i == width - 1)
       {
-        gray_img[idx] = 0;
+        blur_img[idx] = 0;
         continue;
       }
       if (j == 0 || j == height - 1)
       {
-        gray_img[idx] = 0;
+        blur_img[idx] = 0;
         continue;
       }
       // Gaussian blur
@@ -131,7 +131,7 @@ void *SobelThread(void *arg)
   int tid = data->thread_id;
 
   int idx;
-  for (int j = chunk_height * tid; j < chunk_height * (tid+1); j++)
+  for (int j = chunk_height * tid; j < data->height; j++)
   {
     for (int i = 0; i < width; i++)
     {
@@ -170,7 +170,7 @@ void *SuppressionThread(void *arg)
   int tid = data->thread_id;
 
   int idx;
-  for (int j = chunk_height * tid; j < chunk_height * (tid + 1); j++)
+  for (int j = chunk_height * tid; j < data->height; j++)
   {
     for (int i = 0; i < width; i++)
     {
@@ -226,7 +226,7 @@ void *double_thresholdThread(void *arg)
   int tid = data->thread_id;
 
   int idx;
-  for (int j = chunk_height * tid; j < chunk_height * (tid + 1); j++)
+  for (int j = chunk_height * tid; j < data->height; j++)
   {
     for (int i = 0; i < width; i++)
     {
@@ -247,7 +247,7 @@ void *HysteresisThread(void *arg)
   Arg *data = (Arg *)arg;
   int tid = data->thread_id;
   int idx;
-  for (int j = chunk_height * tid; j < chunk_height * (tid + 1); j++)
+  for (int j = chunk_height * tid; j < data->height; j++)
   {
     for (int i = 0; i < width; i++)
     {
@@ -281,7 +281,7 @@ void *HysteresisThread(void *arg)
   }
   pthread_barrier_wait(&barrier);
   // bottom up
-  for (int j = chunk_height * (tid + 1) - 1; j >= chunk_height * tid; j--)
+  for (int j = data->height - 1; j >= chunk_height * tid; j--)
   {
     for (int i = width - 1; i >= 0; i--)
     {
@@ -348,16 +348,17 @@ int main(int argc, char **argv)
   angle = (float *)malloc(width * height * sizeof(float));
 
   // calc height,width per thread
-  chunk_height = int(height / number_of_thread);
+  chunk_height = ceil(height / (float)number_of_thread);
   chunk_width = width;
   
 
   //--- ToGrayThread
-  printf("%s","GGstart\n");
+  // printf("%s","GGstart\n");
   gettimeofday(&start[0], NULL);
   for (thread = 0; thread < number_of_thread; thread++)
   {
     arg[thread].thread_id = thread;
+    arg[thread].height = min((int)(chunk_height*(thread+1)),height);
     pthread_create(&thread_handles[thread], &attr, ToGrayThread, (void *)&arg[thread]);
   }
   for (thread = 0; thread < number_of_thread; thread++)
@@ -369,7 +370,6 @@ int main(int argc, char **argv)
   gettimeofday(&start[1], NULL);
   for (thread = 0; thread < number_of_thread; thread++)
   {
-    arg[thread].thread_id = thread;
     pthread_create(&thread_handles[thread], &attr, GaussianThread, (void *)&arg[thread]);
   }
   for (thread = 0; thread < number_of_thread; thread++)
@@ -382,7 +382,6 @@ int main(int argc, char **argv)
   gettimeofday(&start[2], NULL);
   for (thread = 0; thread < number_of_thread; thread++)
   {
-    arg[thread].thread_id = thread;
     pthread_create(&thread_handles[thread], &attr, SobelThread, (void *)&arg[thread]);
   }
   for (thread = 0; thread < number_of_thread; thread++)
@@ -394,7 +393,6 @@ int main(int argc, char **argv)
   gettimeofday(&start[3], NULL);
   for (thread = 0; thread < number_of_thread; thread++)
   {
-    arg[thread].thread_id = thread;
     pthread_create(&thread_handles[thread], &attr, SuppressionThread, (void *)&arg[thread]);
   }
   for (thread = 0; thread < number_of_thread; thread++)
@@ -406,7 +404,6 @@ int main(int argc, char **argv)
   gettimeofday(&start[4], NULL);
   for (thread = 0; thread < number_of_thread; thread++)
   {
-    arg[thread].thread_id = thread;
     pthread_create(&thread_handles[thread], &attr, double_thresholdThread, (void *)&arg[thread]);
   }
   for (thread = 0; thread < number_of_thread; thread++)
@@ -419,7 +416,6 @@ int main(int argc, char **argv)
   pthread_barrier_init(&barrier, NULL, number_of_thread);
   for (thread = 0; thread < number_of_thread; thread++)
   {
-    arg[thread].thread_id = thread;
     pthread_create(&thread_handles[thread], &attr, HysteresisThread, (void *)&arg[thread]);
   }
   for (thread = 0; thread < number_of_thread; thread++)
@@ -427,7 +423,8 @@ int main(int argc, char **argv)
     pthread_join(thread_handles[thread], NULL);
   }
   gettimeofday(&end[5], NULL);
-
+  // print_image(width,height,0,0,max(width,height) + 1,out_img);
+  // print_fmatrix(width,height,0,0,max(width,height) + 1,angle);
   stbi_write_png("result/Pthread_image.png", width, height, 1, out_img, width);
   double total_time = 0.0;
   for (int index = 0; index < 6; index++)
