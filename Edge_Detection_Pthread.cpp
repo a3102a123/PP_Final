@@ -280,7 +280,7 @@ void *HysteresisThread(void *arg)
       //   out_img[idx] = 0;
     }
   }
-  pthread_barrier_wait(&barrier1);
+  pthread_barrier_wait(&barrier);
   // bottom up
   for (int j = chunk_height * (tid + 1) - 1; j >= chunk_height * tid; j--)
   {
