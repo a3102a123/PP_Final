@@ -265,6 +265,19 @@ void Hysteresis_array_way(uint8_t* img, int width , int height){
     }
 }
 
+void thresholding(uint8_t* img, int width , int height){
+    int idx;
+    for(int j = 0 ; j < height ; j++){
+        for(int i = 0 ; i < width ; i++ ){
+            idx = ( j * width + i );
+            if(img[idx] >= STRONG)
+                img[idx] = 255;
+            else
+                img[idx] = 0;
+        }
+    }
+}
+
 int main(int argc,char **argv){
     int width, height, bpp;
     char img_name_temp[] = "image/";
@@ -310,6 +323,12 @@ int main(int argc,char **argv){
     // print_image(width,height,0,0,max(width,height) + 1,out_img);
     // print_fmatrix(width,height,0,0,max(width,height) + 1,angle);
     stbi_write_png("result/Serial_image.png", width, height, 1, out_img, width);
+    // out put the convert image
+    // stbi_write_png("chart/gray_image.png", width, height, 1, gray_img, width);
+    // stbi_write_png("chart/blur_image.png", width, height, 1, blur_img, width);
+    // output the result of origin edge detection way
+    // thresholding(gradient_img, width, height);
+    // stbi_write_png("chart/Sobel_image.png", width, height, 1, gradient_img, width);
     double total_time = 0.0;
     for(int index = 0; index < 6; index++) {
         double timeuse = (end[index].tv_sec - start[index].tv_sec) + (double)(end[index].tv_usec - start[index].tv_usec)/1000000.0;
